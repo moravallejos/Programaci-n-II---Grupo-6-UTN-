@@ -1,0 +1,272 @@
+#Integrantes del grupo 6: 
+# - De Salvia, Nicolás. 
+# - Capone, Santino. 
+# - Vallejos, Mora. 
+
+import sqlite3 as sql  
+import datetime 
+
+class programa():
+
+    def menu(self): #Método de instancia que llama funciones externas.
+        bandera = True #Definimos una bandera para que el bucle WHILE se repita infinitas veces.
+        while bandera == True:
+            #Menú.
+            print("Menú de opciones:")
+            print("1-Cargar monopatín.")
+            print("2-Modificar un registro.")
+            print("3-Borrar un registro.")
+            print("4-Cargar disponibilidad.")
+            print("5-Listar productos.")
+            print("6-Crear nueva tabla personalizada. Ingresar registros a la tabla.")
+            print("7-Aumentar precio.")
+            print("8-Mostrar todos los registros. (Debe usarse la opción 7 previamente)")
+            print("0-Salir del programa.")
+            
+            opcion = int(input("Seleccione una opción:\n")) #Se cargan las opciones.
+
+            while opcion < 0 or opcion > 8: #Utilizamos un bucle WHILE para que se seleccione la opción, y si es una opción inválida, que se repita hasta que la opción sea válida. 
+                opcion = int(input("Opción inválida, vuelva a intentarlo:\n"))
+
+            
+            if opcion == 1: #Opción 1 - Cargar Monopatín.
+                marca = str(input("Inserte el nombre de la marca:"))
+                precio = float(input("Inserte el precio del producto:"))
+                cantidad = int(input("Inserte la cantidad en stock del producto:"))
+                insertarRegistro(marca,precio, cantidad)
+
+            elif opcion == 2: #Opción 2 - Modificar un registro.
+                nuevoId = int(input("Ingrese el id del producto que desea modificar:\n"))
+                nuevoPrecio = float(input("Ingrese el nuevo valor del producto seleccionado:\n"))
+                actualizarPrecio(nuevoPrecio, nuevoId)
+
+            elif opcion == 3: #Opción 3 - Borra un registro. 
+                nombreTabla = str(input("Ingrese el nombre de la tabla en la que desea borrar un registro:\n"))
+                nuevoId = int(input("Ingrese el id del producto que desea borrar:\n"))
+                borrarMonopatin(nombreTabla, nuevoId)
+
+            elif opcion == 4: #Opción 4 - Se carga una variable (sería la "marca"), si ya existe, se aumenta el stock en 1. 
+                nombreMarca = str(input("Ingrese el nombre de la marca a la que desa aumentar el stock:"))
+                cargarDisponibilidad(nombreMarca)
+
+            elif opcion == 5: #Opción 5 - Se muestran en pantalla todas las listas de productos (las tablas). 
+                nombreTabla = str(input("Ingrese Monopatines para ver la tabla estandar o Monopatin para ver la tabla personalizada.\nIngrese HistoricoPrecios para ver la tabla con el aumento de precio.\n"))
+                if nombreTabla != "Monopatines" and nombreTabla != "Monopatin" and nombreTabla != "HistoricoPrecios":
+                    nombreTabla = str(input("Nombre de tabla inválido. Vuelva a ingresar el nombre de la tabla:"))
+                leerTabla(nombreTabla)
+
+            elif opcion == 6: #Opción 6 - Se crean nuevas tablas para que el usuario los personalice. 
+                print("Ingrese los datos de un producto a la nueva tabla.")
+                modelo = str(input("Ingrese el modelo:"))
+                marca = str(input("Ingrese la marca:"))
+                potencia = str(input("Ingrese la potencia:"))
+                precio = int(input("Ingrese el precio:"))
+                color = str(input("Ingrese el color:"))
+                año = int(input("Ingrese el año de ingreso del producto:"))
+                mes = int(input("Ingrese el mes de ingreso del producto:"))
+                dia = int(input("Ingrese el día de ingreso del producto:"))
+                fechaUltimoPrecio = datetime.datetime(año, mes, dia)
+                cargarRegistroNuevaTabla(modelo,marca,potencia,precio,color,fechaUltimoPrecio)
+
+            elif opcion == 7: # Opción 7 - Se crea una nueva tabla llamada "HistoricoPrecios", pone todos los registros de la tabla en la opción anterior y se le regarga el precio en 0.23%.
+                clonarTabla()
+                actualizarDolar()
+            
+            elif opcion == 8: # Opción 8 - Creamos una función que tome como parámetro una fecha. 
+                año = int(input("Ingrese el año de ingreso del producto:"))
+                mes = int(input("Ingrese el mes de ingreso del producto:"))
+                dia = int(input("Ingrese el día de ingreso del producto:"))
+                fecha = datetime.datetime(año, mes, dia)
+                filtrarPorFecha(fecha)
+
+            else: #Si se introduce el 0, elimina todas las tablas creadas previamente.
+                bandera = False
+                tabla1= "Monopatines"
+                tabla2= "Monopatin"
+                tabla3= "HistoricoPrecios"
+                borrarTabla(tabla1)
+                borrarTabla(tabla2)
+                borrarTabla(tabla3)
+                print("Saliendo del programa.")
+
+
+#Función para crear una base de datos "Monopatines".
+def crearBD():
+    conn = sql.connect("Monopatines.db")
+    conn.commit()
+    conn.close()
+
+
+#Función para crear una tabla con 4 columnas. 
+def crearTabla():
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor() 
+        cursor.execute( 
+            """CREATE TABLE Monopatines (
+            id INTEGER NOT NULL PRIMARY KEY,
+            marca text UNIQUE,
+            precio integer,
+            cantidad integer
+            )"""
+        )
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def insertarRegistro(marca, precio, cantidad): #Manda los datos de los parámetros anteriores a una tabla específica. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"INSERT INTO Monopatines (marca,precio,cantidad) VALUES ('{marca}' , {precio} , {cantidad})"
+        cursor.execute(instruccion)
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:        
+        conn.close()
+
+def leerTabla(nombreTabla): #Lee la tabla y muestra por pantalla en base al nombre que el usuario introdujo. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"SELECT * FROM '{nombreTabla}'"
+        cursor.execute(instruccion)
+        datos = cursor.fetchall()
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+        print(datos)
+
+def borrarTabla(tabla): #Borra definitivamente una tabla.
+    try:
+        conn = sql.connect('Monopatines.db')
+        instruccion = f"DROP TABLE '{tabla}'"
+        conn.execute(instruccion)
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+        print("Tabla borrada.")
+
+def actualizarPrecio(nuevoPrecio,nuevoId): #Si el programa encuentra una ID igual a otra, se le permitirá al usuario reemplazar el precio de esa misma ID. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"UPDATE Monopatines SET precio={nuevoPrecio} WHERE id={nuevoId}"
+        cursor.execute(instruccion)
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def borrarMonopatin(nombreTabla,nuevoId): #Elimina el ID de la tabla ingresada. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruction= f"DELETE from '{nombreTabla}' where id={nuevoId}"
+        cursor.execute(instruction)
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def cargarDisponibilidad(nombreMarca): #Aumenta en 1 la cantidad de stock de Monopatín. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"UPDATE Monopatines SET cantidad=cantidad+1 WHERE marca like '{nombreMarca}'"
+        cursor.execute(instruccion)
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def nuevaTabla(): #Crea una tabla con el nombre de "Monopatin", la cual contiene más columnas que la tabla anterior. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            """CREATE TABLE Monopatin (
+            id_mono integer NOT NULL PRIMARY KEY,
+            modelo varchar(30),
+            marca varchar(30),
+            potencia varchar(30),
+            precio integer,
+            color varchar(30),
+            fechaUltimoPrecio datetime
+            )""")
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def cargarRegistroNuevaTabla(modelo,marca,potencia,precio,color,fechaUltimoPrecio): #Se crea una tabla donde se registran los datos anteriores de las variables siguientes. 
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"INSERT INTO Monopatin (modelo,marca,potencia,precio,color,fechaUltimoPrecio) VALUES ('{modelo}', '{marca}' , '{potencia}' , {precio} , '{color}' , '{fechaUltimoPrecio}')"
+        cursor.execute(instruccion)
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def clonarTabla(): #Duplica las columnas de la tabla "Monopatin" y crea una nueva tabla con esas mismas columnas.
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        cursor.execute("""CREATE TABLE HistoricoPrecios AS SELECT * FROM Monopatin WHERE 0""")
+        cursor.execute("""INSERT INTO HistoricoPrecios SELECT * FROM Monopatin""")
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+
+def actualizarDolar(): #Actualiza el precio incrementándolo en 0.23% del total anterior.
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"UPDATE HistoricoPrecios SET precio=precio*1.23"
+        cursor.execute(instruccion)
+        conn.commit()
+    except:
+        print("Para ver la tabla insertar 'HistoricoPrecios' en la opción Nº 5.")
+    finally:
+        conn.close()
+
+def filtrarPorFecha(fecha): #Hace una comparación de fechas y nos muestra los registro que posean una fecha anterior.
+    try:
+        conn = sql.connect("Monopatines.db")
+        cursor = conn.cursor()
+        instruccion = f"SELECT * FROM HistoricoPrecios WHERE fechaUltimoPrecio < '{fecha}'"
+        cursor.execute(instruccion)
+        datos = cursor.fetchall()
+        conn.commit()
+    except:
+        print("ERROR.")
+    finally:
+        conn.close()
+        print(datos)
+
+
+Ejecutar = programa() #Se crea un objeto de clase "programa".
+
+crearBD() #Se crea la base de datos.
+
+crearTabla() #Se crea la tabla "Monopatines".
+
+nuevaTabla() #Se crea la tabla "Monopatin".
+
+Ejecutar.menu() #Se ejecuta el método "menu" de la clase "programa" a través del objero "Ejecutar".
